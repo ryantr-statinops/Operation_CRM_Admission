@@ -1,0 +1,23 @@
+{
+  "scriptId": "YOUR_SCRIPT_ID_HERE",
+  "rootDir": "src",
+  "scriptExtensions": [
+    ".js",
+    ".gs"
+  ],
+  "htmlExtensions": [
+    ".html"
+  ],
+  "jsonExtensions": [
+    ".json"
+  ],
+  "filePushOrder": [
+    "Config_.js",
+    "LoggerService_.js",
+    "DatabaseService_.js",
+    "SyncService_.js",
+    "Main_.js",
+    "Test_.js"
+  ],
+  "skipSubdirectories": false
+}

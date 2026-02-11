@@ -1,0 +1,35 @@
+{
+  "name": "google-apps-script-crm",
+  "version": "1.0.0",
+  "description": "Hệ thống CRM quản lý học viên với Google Apps Script",
+  "main": "src/Main_.js",
+  "scripts": {
+    "login": "clasp login",
+    "push": "clasp push",
+    "pull": "clasp pull",
+    "open": "clasp open",
+    "deploy": "clasp deploy",
+    "logs": "clasp logs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/google-apps-script-crm.git"
+  },
+  "keywords": [
+    "google-apps-script",
+    "crm",
+    "google-sheets",
+    "automation",
+    "student-management",
+    "vietnamese"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/google-apps-script-crm/issues"
+  },
+  "homepage": "https://github.com/yourusername/google-apps-script-crm#readme",
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
