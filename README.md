@@ -1,26 +1,28 @@
-# 🎓 Google Apps Script - CRM Quản Lý Học Viên
+# Google Apps Script - CRM Quản Lý Học Viên
 
 > Hệ thống quản lý dữ liệu học viên tự động với Google Sheets & Apps Script
 
 [![Google Apps Script](https://img.shields.io/badge/Google%20Apps%20Script-4285F4?style=flat&logo=google&logoColor=white)](https://script.google.com/)
+[![Google Sheets](https://img.shields.io/badge/Google%20Sheets-34A853?style=flat&logo=google-sheets&logoColor=white)](https://www.google.com/sheets/about/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## 📋 Mục Lục
+## Mục Lục
 
 - [Giới Thiệu](#-giới-thiệu)
 - [Tính Năng](#-tính-năng)
 - [Cài Đặt](#-cài-đặt)
-- [Cấu Hình](#️-cấu-hình)
+- [Cấu Hình](#-cấu-hình)
 - [Sử Dụng](#-sử-dụng)
 - [Cấu Trúc Dự Án](#-cấu-trúc-dự-án)
 - [Đóng Góp](#-đóng-góp)
 - [Giấy Phép](#-giấy-phép)
 
-## 🎯 Giới Thiệu
+## Giới Thiệu
 
 Hệ thống CRM quản lý thông tin học viên được xây dựng trên Google Apps Script, giúp tự động hóa việc thu thập, đồng bộ và quản lý dữ liệu từ nhiều sheet Google Sheets.
 
-### 🌟 Điểm Nổi Bật
+### Điểm Nổi Bật
 
 - ✅ **Tự động đồng bộ** dữ liệu từ nhiều sheet tháng vào Database tập trung
 - ✅ **Tự động điền ngày ghi nhận** khi có dữ liệu mới
@@ -29,7 +31,7 @@ Hệ thống CRM quản lý thông tin học viên được xây dựng trên Go
 - ✅ **Logging chi tiết** để theo dõi và debug
 - ✅ **Test suite** đầy đủ để đảm bảo chất lượng
 
-## 🚀 Tính Năng
+## Tính Năng
 
 ### 1. Quản Lý Dữ Liệu
 - Thu thập dữ liệu từ nhiều sheet "Tháng" vào một Database duy nhất
@@ -52,9 +54,10 @@ Hệ thống CRM quản lý thông tin học viên được xây dựng trên Go
 - Debug cấu trúc sheets
 - Test suite với nhiều test case
 
-## 📥 Cài Đặt
+## Cài Đặt
 
 ### Yêu Cầu
+
 - Tài khoản Google
 - Quyền chỉnh sửa Google Sheets
 - Google Apps Script Editor
@@ -64,27 +67,32 @@ Hệ thống CRM quản lý thông tin học viên được xây dựng trên Go
 #### Phương Pháp 1: Sử Dụng Clasp (Khuyến Nghị)
 
 1. **Cài đặt Clasp**
+
 ```bash
 npm install -g @google/clasp
 ```
 
 2. **Clone repository**
+
 ```bash
 git clone https://github.com/YOUR_USERNAME/google-apps-script-crm.git
 cd google-apps-script-crm
 ```
 
 3. **Đăng nhập Clasp**
+
 ```bash
 clasp login
 ```
 
 4. **Tạo Apps Script project mới**
+
 ```bash
 clasp create --type sheets --title "CRM Quản Lý Học Viên"
 ```
 
 5. **Push code lên Apps Script**
+
 ```bash
 clasp push
 ```
@@ -137,35 +145,38 @@ Mỗi sheet "Tháng" cần có các cột sau:
 | B | MÃ TVV | Có | Mã tư vấn viên |
 | G | SĐT | Có | Số điện thoại (khóa chính) |
 
-## 💡 Sử Dụng
+## Sử Dụng
 
 ### Menu Hệ Thống
 
 Sau khi cài đặt, bạn sẽ thấy menu **"Hệ Thống Database"** với các tùy chọn:
 
-#### 🔄 Gom dữ liệu từ các sheet Tháng
+#### Gom dữ liệu từ các sheet Tháng
+
 - Thu thập toàn bộ dữ liệu từ các sheet "Tháng" vào Database
 - Xóa dữ liệu cũ và tạo mới
 
-#### 📅 Điền ngày hiện tại cho dữ liệu cũ
+#### Điền ngày hiện tại cho dữ liệu cũ
+
 - Quét tất cả sheet "Tháng"
 - Điền ngày hôm nay cho các dòng có Mã TVV/SĐT nhưng chưa có ngày
 
-#### 📆 Điền ngày tùy chỉnh cho dữ liệu cũ
+#### Điền ngày tùy chỉnh cho dữ liệu cũ
+
 - Cho phép chọn ngày cụ thể
 - Hữu ích khi import dữ liệu cũ
 
-#### 📊 Kiểm tra trạng thái
+#### Kiểm tra trạng thái
 - Xem số lượng bản ghi
 - Kiểm tra cấu hình hệ thống
 - Liệt kê các cột đang quản lý
 
-#### 🔍 Kiểm tra cấu trúc sheets
+#### Kiểm tra cấu trúc sheets
 - Debug cấu trúc từng sheet
 - Phát hiện cột thiếu
 - Xem số dòng/cột
 
-#### 🧪 Kiểm tra toàn bộ / ⚡ Kiểm tra nhanh
+#### Kiểm tra toàn bộ / Kiểm tra nhanh
 - Chạy test suite
 - Kiểm tra tính năng hệ thống
 
@@ -192,9 +203,9 @@ Hệ thống sử dụng trigger `onEdit()` để tự động:
    Menu → "Gom dữ liệu từ các sheet Tháng"
 ```
 
-## 📁 Cấu Trúc Dự Án
+## Cấu Trúc Dự Án
 
-```
+```tree
 google-apps-script-crm/
 ├── src/
 │   ├── Config_.js              # Cấu hình hệ thống
@@ -210,13 +221,14 @@ google-apps-script-crm/
 └── .gitignore                 # Git ignore
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Chạy Test
 
 Từ menu: **Hệ Thống Database** → **Kiểm tra toàn bộ**
 
 Test bao gồm:
+
 - ✅ Config validation
 - ✅ Logger functionality  
 - ✅ Database operations
@@ -232,7 +244,7 @@ Test bao gồm:
 3. Sửa Database → Kiểm tra đồng bộ ngược
 4. Gom dữ liệu → Kiểm tra kết quả Database
 
-## 🔧 Tùy Chỉnh
+## Tùy Chỉnh
 
 ### Thêm Cột Mới
 
@@ -255,7 +267,7 @@ if ((valMaTVV !== "" || valSDT !== "") && cellA.getValue() === "") {
 
 Chỉnh sửa `SyncService_.js`, thêm validation trong hàm `capNhatDatabase()`.
 
-## 📊 Logging
+## Logging
 
 Xem log trong Apps Script Editor:
 
@@ -264,12 +276,13 @@ Xem log trong Apps Script Editor:
 3. Xem chi tiết từng bước thực thi
 
 Log levels:
+
 - `DEBUG`: Chi tiết kỹ thuật
 - `INFO`: Thông tin chung
 - `WARN`: Cảnh báo
 - `ERROR`: Lỗi cần xử lý
 
-## 🤝 Đóng Góp
+## Đóng Góp
 
 Chúng tôi rất hoan nghênh mọi đóng góp!
 
@@ -288,11 +301,12 @@ Chúng tôi rất hoan nghênh mọi đóng góp!
 - Tuân thủ coding style hiện tại
 - Thêm test cho tính năng mới
 
-## ❓ FAQ
+## FAQ
 
 ### Tại sao ngày không tự động điền?
 
 Kiểm tra:
+
 1. Sheet có bắt đầu bằng "Tháng" không?
 2. Dòng có >= `DATA_START_ROW` không?
 3. Có Mã TVV hoặc SĐT không?
@@ -301,19 +315,22 @@ Kiểm tra:
 ### Làm sao để khôi phục dữ liệu?
 
 Google Sheets tự động lưu version history:
+
 1. **File** → **Version History** → **See version history**
 2. Chọn version cần khôi phục
 
 ### Có giới hạn số lượng dữ liệu không?
 
 Google Sheets giới hạn:
+
 - 10 triệu cells/spreadsheet
 - 5 triệu cells/sheet
 - 18,278 columns/sheet
 
-## 📝 Changelog
+## Changelog
 
 ### Version 1.0.0 (2026-02-11)
+
 - ✨ Tính năng gom dữ liệu từ nhiều sheet
 - ✨ Tự động điền ngày ghi nhận
 - ✨ Đồng bộ hai chiều Database ↔ Sheet
@@ -321,24 +338,18 @@ Google Sheets giới hạn:
 - ✨ Điền ngày cho dữ liệu cũ
 - ✨ Test suite đầy đủ
 
-## 📄 Giấy Phép
+## Giấy Phép
 
 Dự án này được phân phối dưới giấy phép MIT. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
 
-## 👥 Tác Giả
+## Tác Giả
 
-- **Your Name** - *Initial work*
+- **Khang (Ryan) Tran** - *Ryan - Statistic in Operations*
 
-## 🙏 Lời Cảm Ơn
+## Lời Cảm Ơn
 
 - Google Apps Script Documentation
-- Cộng đồng Stack Overflow
 - Tất cả contributors
-
-## 📞 Liên Hệ
-
-- Email: your.email@example.com
-- GitHub: [@yourusername](https://github.com/yourusername)
 
 ---
 
