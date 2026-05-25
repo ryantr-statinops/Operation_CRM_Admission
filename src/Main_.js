@@ -1,30 +1,50 @@
 /* ================================================
-   MAIN ENTRY POINT - TVV SYSTEM (ĐÃ SỬA LỖI TỰ ĐỘNG ĐIỀN NGÀY)
+   MAIN ENTRY POINT 
 ================================================ */
 
 function onOpen() {
   try {
     logger.info('Khởi tạo menu hệ thống...');
-   
-    const mainMenu = SpreadsheetApp.getUi().createMenu('Hệ Thống Database');
-    mainMenu.addItem('🔄 Gom dữ liệu từ các sheet Tháng', 'mergeSheetsToDatabase');
-    mainMenu.addItem('📅 Điền ngày hiện tại cho dữ liệu cũ', 'fillMissingDates');
-    mainMenu.addItem('📆 Điền ngày tùy chỉnh cho dữ liệu cũ', 'fillMissingDatesCustom');
-    mainMenu.addSeparator();
+    
+    // 🚀 MENU CHÍNH - TEAM DATABASE
+    const mainMenu = SpreadsheetApp.getUi().createMenu('Team Database');
+    mainMenu.addItem('🔄 Gom dữ liệu từ sheets', 'mergeSheetsToDatabase');
+    mainMenu.addItem('📁 Đồng bộ dòng hiện tại', 'syncCurrentRow');
     mainMenu.addItem('📊 Kiểm tra trạng thái', 'showSystemStatus');
-    mainMenu.addItem('🔍 Kiểm tra cấu trúc sheets', 'debugSheetsStructure');
-    mainMenu.addSeparator();
-    mainMenu.addItem('🧪 Kiểm tra toàn bộ', 'runAllTests');
-    mainMenu.addItem('⚡ Kiểm tra nhanh', 'quickTest');
+    mainMenu.addItem('🧪 Chạy kiểm tra hệ thống', 'runAllTests');
     mainMenu.addToUi();
-   
-    logger.info('Menu hệ thống Database đã được tạo');
-   
+    
+    // 👨‍🎓 MENU FORM - TRA CỨU HỌC VIÊN  
+    const formMenu = SpreadsheetApp.getUi().createMenu('Form Tra Cứu');
+    formMenu.addItem('🔍 Tìm kiếm theo SDT', 'loadFormBySDT');
+    formMenu.addItem('💾 Lưu thay đổi', 'saveFormData');
+    formMenu.addItem('🗑️ Xóa Form', 'clearForm');
+    formMenu.addItem('🔄 Tạo Form bố cục mới', 'createNewFormLayout');
+    formMenu.addToUi();
+    
+  // 🆕 TỰ ĐỘNG KIỂM TRA VÀ TẠO FORM
+  try {
+    if (Config.AUTO_CREATE_FORM) {
+      const formSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(Config.FORM_SHEET_NAME);
+      if (!formSheet) {
+        logger.info('Tự động tạo Form sheet...');
+        setupFormSheet(); // 🎯 SỬA THÀNH setupFormSheet() (có sẵn trong FormService)
+      }
+    }
+  } catch (error) {
+  logger.warn('Không thể tự động tạo Form: ' + error.toString());
+}
+      
+    logger.info('Menu hệ thống đã được tạo');
+    
   } catch (error) {
     logger.error('Lỗi khi tạo menu: ' + error.toString());
   }
 }
 
+/* -----------------------------
+   Hàm gom dữ liệu - gọi từ menu
+----------------------------- */
 function mergeSheetsToDatabase() {
   logger.info('User kích hoạt gom dữ liệu từ menu');
   try {
@@ -36,311 +56,166 @@ function mergeSheetsToDatabase() {
   }
 }
 
-// 🆕 HÀM onEdit ĐÃ SỬA LỖI
+/* -----------------------------
+   🆕 HÀM ĐỒNG BỘ DÒNG HIỆN TẠI - GỌI TỪ MENU
+----------------------------- */
+function syncCurrentRow() {
+  try {
+    const sheet = SpreadsheetApp.getActiveSheet();
+    const sheetName = sheet.getName();
+    const row = sheet.getActiveRange().getRow();
+    
+    console.log(`🔍 Đang xử lý đồng bộ: Sheet "${sheetName}", Dòng ${row}`);
+    
+    // Chỉ xử lý nếu đang ở Database sheet và là dòng dữ liệu
+    if (sheetName === Config.DB_SHEET_NAME && row >= Config.DB_DATA_START_ROW) {
+      
+      // Lấy metadata từ dòng hiện tại
+      const headers = sheet.getRange(Config.DB_HEADER_ROW, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const metaSheetColIndex = headers.indexOf(Config.SHEET_GOC_COL) + 1;
+      const metaRowColIndex = headers.indexOf(Config.DONG_GOC_COL) + 1;
+      
+      const rowData = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const sheetGoc = rowData[metaSheetColIndex - 1];
+      const dongGoc = rowData[metaRowColIndex - 1];
+      
+      console.log(`📋 Metadata: Sheet_goc="${sheetGoc}", Dong_goc=${dongGoc}`);
+      
+      if (!sheetGoc || !dongGoc) {
+        SpreadsheetApp.getUi().alert('❌ Dòng này không có metadata (Sheet_goc, Dong_goc)!\n\nKhông thể đồng bộ tự động.');
+        return;
+      }
+      
+      // Tạo event giả và gọi đồng bộ
+      const fakeEvent = {
+        range: sheet.getRange(row, 1),
+        source: SpreadsheetApp.getActiveSpreadsheet()
+      };
+      
+      console.log(`🔄 Đang đồng bộ: Database dòng ${row} → ${sheetGoc} dòng ${dongGoc}`);
+      syncService.capNhatSheetThang(fakeEvent);
+      
+      SpreadsheetApp.getUi().alert(`✅ ĐÃ ĐỒNG BỘ THÀNH CÔNG!\n\n• Database dòng: ${row}\n• Sheet đích: ${sheetGoc}\n• Dòng đích: ${dongGoc}\n\nDữ liệu đã được cập nhật tự động.`);
+      
+    } else if (sheetName.startsWith(Config.MONTH_PREFIX) && row >= Config.DATA_START_ROW) {
+      // Nếu đang ở sheet tháng, đồng bộ lên Database
+      const fakeEvent = {
+        range: sheet.getRange(row, 1),
+        source: SpreadsheetApp.getActiveSpreadsheet()
+      };
+      
+      console.log(`🔄 Đang đồng bộ: ${sheetName} dòng ${row} → Database`);
+      syncService.capNhatDatabase(fakeEvent);
+      
+      SpreadsheetApp.getUi().alert(`✅ ĐÃ ĐỒNG BỘ THÀNH CÔNG!\n\n• Sheet: ${sheetName}\n• Dòng: ${row}\n• Đích: Database\n\nDữ liệu đã được cập nhật tự động.`);
+      
+    } else {
+      SpreadsheetApp.getUi().alert('⚠️ KHÔNG THỂ ĐỒNG BỘ!\n\nChỉ có thể đồng bộ khi:\n• Ở sheet Database (từ dòng 2 trở đi)\n• Ở sheet tháng (từ dòng 3 trở đi)\n\nHiện tại: ' + sheetName + ' dòng ' + row);
+    }
+    
+  } catch (error) {
+    logger.error('Lỗi khi đồng bộ dòng hiện tại: ' + error.toString());
+    SpreadsheetApp.getUi().alert('❌ LỖI KHI ĐỒNG BỘ:\n' + error.toString());
+  }
+}
+
+/* -----------------------------
+   Trigger onEdit - điều phối sự kiện chỉnh sửa
+----------------------------- */
 function onEdit(e) {
   if (!e) return;
   
   try {
-    const range = e.range;
-    const sh = range.getSheet();
+    const sh = e.range.getSheet();
     const name = sh.getName();
-    const col = range.getColumn();
-    const row = range.getRow();
-
-    // CHỈ XỬ LÝ VỚI CÁC SHEET THÁNG
-    if (!name.startsWith(Config.MONTH_PREFIX)) {
-      return;
-    }
-
-    // CHỈ XỬ LÝ DÒNG DỮ LIỆU (BỎ QUA HEADER)
-    if (row < Config.DATA_START_ROW) {
-      return;
-    }
-
-    // 🔥 LOGIC TỰ ĐỘNG ĐIỀN NGÀY GHI NHẬN
-    const cellA = sh.getRange(row, 1);
     
-    // Lấy giá trị của Mã TVV (Cột B=2) và SĐT (Cột G=7)
-    const valMaTVV = sh.getRange(row, 2).getValue();
-    const valSDT = sh.getRange(row, 7).getValue();
+    logger.debug(`Phát hiện sửa đổi trong sheet: ${name}`);
 
-    // ĐIỀU KIỆN 1: Nếu cả 2 cột định danh đều trống → Xóa ngày cũ (nếu có)
-    if (valMaTVV === "" && valSDT === "") {
-      if (cellA.getValue() !== "") {
-        cellA.clearContent();
-        cellA.setBackground(null);
-        logger.info(`🗑️ Đã xóa ngày ở dòng ${row} do cả Mã TVV và SĐT đều trống`);
-      }
-    } 
-    // ĐIỀU KIỆN 2: Nếu một trong hai cột có dữ liệu VÀ cột A đang trống → Ghi ngày mới
-    else if ((valMaTVV !== "" || valSDT !== "") && cellA.getValue() === "") {
-      const today = new Date();
-      cellA.setValue(today);
-      cellA.setNumberFormat("dd/mm/yyyy");
-      cellA.setBackground("#e6f4ea"); // Màu xanh nhạt
-      logger.info(`📅 Đã điền ngày ${Utilities.formatDate(today, Session.getScriptTimeZone(), "dd/MM/yyyy")} vào dòng ${row}`);
+    // 🎯 GỌI VALIDATION CHO FORM (từ FormService mới)
+    if (name === Config.FORM_SHEET_NAME) {
+      validateDateInput(e);
     }
 
-    // 🔥 ĐẨY DỮ LIỆU SANG DATABASE (CHỈ KHI CÓ SĐT)
-    // Kiểm tra xem có SĐT không trước khi gọi sync
-    const currentSDT = sh.getRange(row, 7).getValue();
-    if (currentSDT && currentSDT.toString().trim() !== "") {
-      if (typeof syncService !== 'undefined') {
-        syncService.capNhatDatabase(e);
-        logger.debug(`🔄 Đã đồng bộ dòng ${row} sang Database`);
-      }
+    if (name === Config.DB_SHEET_NAME) {
+      // Sửa ở Database → cập nhật về sheet gốc
+      syncService.capNhatSheetThang(e);
+    } else if (name.startsWith(Config.MONTH_PREFIX)) {
+      // Sửa ở sheet tháng → cập nhật lên Database
+      syncService.capNhatDatabase(e);
     }
-
-  } catch (err) {
-    logger.error("❌ Lỗi onEdit: " + err.toString());
-    console.error("Lỗi onEdit: " + err.toString());
+    
+  } catch (error) {
+    logger.error('Lỗi trong onEdit: ' + error.toString());
   }
 }
 
+/* -----------------------------
+   Hiển thị trạng thái hệ thống
+----------------------------- */
 function showSystemStatus() {
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(Config.DB_SHEET_NAME);
     let recordCount = 0;
-   
-    if (sheet && sheet.getLastRow() >= Config.DB_DATA_START_ROW) {
-      recordCount = sheet.getLastRow() - Config.DB_DATA_START_ROW + 1;
+    
+    if (sheet && sheet.getLastRow() >= Config.DATA_START_ROW) {
+      recordCount = sheet.getLastRow() - Config.DATA_START_ROW + 1;
     }
-   
-    const tvvSheets = SpreadsheetApp.getActiveSpreadsheet()
+    
+    const monthSheets = SpreadsheetApp.getActiveSpreadsheet()
       .getSheets()
       .filter(sh => sh.getName().startsWith(Config.MONTH_PREFIX))
       .length;
-   
-    const dbStatus = databaseService.getDatabaseStatus();
-   
-    const message = `📊 **THỐNG KÊ HỆ THỐNG CRM**
-   
+    
+    const message = `📊 **THỐNG KÊ HỆ THỐNG**
+    
 • Sheet Database: ${Config.DB_SHEET_NAME}
 • Số bản ghi: ${recordCount}
-• Số sheet TVV: ${tvvSheets}
-• Số cột Database: ${dbStatus.expectedColumns}
-• Các cột dữ liệu: ${Config.DB_COLUMNS.length}
-
-📋 **DANH SÁCH CỘT:**
-${Config.DB_COLUMNS.map((col, index) => `${index + 1}. ${col}`).join('\n')}
+• Số sheet tháng: ${monthSheets}
+• Prefix sheet tháng: ${Config.MONTH_PREFIX}
 
 💡 **HƯỚNG DẪN**
 1. Thêm sheet mới với tên bắt đầu bằng "${Config.MONTH_PREFIX}"
-2. Đảm bảo có cột "${Config.SDT_HEADER}" và các cột khác
+2. Đảm bảo có cột "${Config.SDT_HEADER}" 
 3. Click "Gom dữ liệu" để đồng bộ
-4. Mọi sửa đổi sẽ được đồng bộ tự động`;
+4. Mọi sửa đổi sẽ được đồng bộ tự động
+5. Dùng "Đồng bộ dòng hiện tại" nếu cần đồng bộ thủ công`;
 
     SpreadsheetApp.getUi().alert(message);
     logger.info('User đã xem trạng thái hệ thống');
-   
+    
   } catch (error) {
     logger.error('Lỗi khi hiển thị trạng thái: ' + error.toString());
   }
 }
 
-function debugSheetsStructure() {
+/* ================================================
+   HÀM TẠO FORM BỐ CỤC MỚI
+================================================ */
+
+function createNewFormLayout() {
   try {
-    syncService.debugSheetsStructure();
-  } catch (error) {
-    logger.error('Lỗi kiểm tra cấu trúc: ' + error.toString());
-    SpreadsheetApp.getUi().alert('❌ Lỗi kiểm tra cấu trúc: ' + error.toString());
-  }
-}
-
-// 🆕 HÀM ĐIỀN NGÀY CHO DỮ LIỆU CŨ
-function fillMissingDates() {
-  logger.info('🔄 Bắt đầu điền ngày cho dữ liệu cũ...');
-  
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheets = ss.getSheets();
+    // Gọi hàm setupFormSheet từ FormService
+    formService.setupFormSheet();
     
-    let totalFilled = 0;
-    let processedSheets = 0;
-    
-    sheets.forEach(sh => {
-      const name = sh.getName();
-      
-      // CHỈ XỬ LÝ CÁC SHEET THÁNG
-      if (!name.startsWith(Config.MONTH_PREFIX)) {
-        return;
-      }
-      
-      logger.info(`📋 Xử lý sheet: ${name}`);
-      
-      const lastRow = sh.getLastRow();
-      
-      if (lastRow < Config.DATA_START_ROW) {
-        logger.info(`   ⚠️ Sheet ${name} không có dữ liệu`);
-        return;
-      }
-      
-      let filledInSheet = 0;
-      
-      // DUYỆT QUA TỪNG DÒNG DỮ LIỆU
-      for (let row = Config.DATA_START_ROW; row <= lastRow; row++) {
-        const cellA = sh.getRange(row, 1); // Cột NGÀY GHI NHẬN
-        const cellB = sh.getRange(row, 2); // Cột MÃ TVV
-        const cellG = sh.getRange(row, 7); // Cột SĐT
-        
-        const dateValue = cellA.getValue();
-        const maTVV = cellB.getValue();
-        const sdt = cellG.getValue();
-        
-        // ĐIỀU KIỆN: Có MÃ TVV hoặc SĐT, nhưng chưa có ngày
-        if ((maTVV !== "" || sdt !== "") && dateValue === "") {
-          const today = new Date();
-          cellA.setValue(today);
-          cellA.setNumberFormat("dd/mm/yyyy");
-          cellA.setBackground("#e6f4ea"); // Màu xanh nhạt
-          
-          filledInSheet++;
-          totalFilled++;
-          
-          logger.debug(`   ✅ Điền ngày dòng ${row}: Mã TVV=${maTVV}, SĐT=${sdt}`);
-        }
-      }
-      
-      if (filledInSheet > 0) {
-        processedSheets++;
-        logger.info(`   📊 Đã điền ${filledInSheet} dòng trong sheet ${name}`);
-      } else {
-        logger.info(`   ✅ Tất cả dòng trong ${name} đã có ngày`);
-      }
-    });
-    
-    const message = `✅ **HOÀN TẤT ĐIỀN NGÀY CHO DỮ LIỆU CŨ**
-
-📊 **KẾT QUẢ:**
-• Tổng số sheet xử lý: ${processedSheets}
-• Tổng số dòng đã điền ngày: ${totalFilled}
-
-${totalFilled > 0 ? '✨ Các dòng đã được điền ngày hiện tại!' : '✅ Tất cả dữ liệu đã có ngày!'}`;
-    
-    logger.info(message);
-    SpreadsheetApp.getUi().alert(message);
-    
-  } catch (error) {
-    logger.error('❌ Lỗi khi điền ngày: ' + error.toString());
-    SpreadsheetApp.getUi().alert('❌ Lỗi khi điền ngày: ' + error.toString());
-  }
-}
-
-// 🆕 HÀM ĐIỀN NGÀY TÙY CHỈNH CHO DỮ LIỆU CŨ
-function fillMissingDatesCustom() {
-  logger.info('🔄 Bắt đầu điền ngày tùy chỉnh cho dữ liệu cũ...');
-  
-  try {
-    const ui = SpreadsheetApp.getUi();
-    
-    // YÊU CẦU NGƯỜI DÙNG NHẬP NGÀY
-    const response = ui.prompt(
-      '📆 Nhập ngày cần điền',
-      'Nhập ngày theo định dạng: dd/mm/yyyy\n(Ví dụ: 15/01/2026)',
-      ui.ButtonSet.OK_CANCEL
+    SpreadsheetApp.getUi().alert(
+      '✅ ĐÃ TẠO FORM BỐ CỤC MỚI THÀNH CÔNG!\n\n' +
+      '• Bảng VỊ TRÍ DÒNG: E4:G9\n' +
+      '• Bảng DANH SÁCH KHÓA HỌC: A11:I16\n' +
+      '• Mỗi bảng tối đa 4 dòng dữ liệu'
     );
     
-    if (response.getSelectedButton() !== ui.Button.OK) {
-      logger.info('❌ Người dùng hủy thao tác');
-      return;
-    }
-    
-    const dateInput = response.getResponseText().trim();
-    
-    // KIỂM TRA ĐỊNH DẠNG NGÀY
-    const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
-    const match = dateInput.match(dateRegex);
-    
-    if (!match) {
-      ui.alert('❌ Định dạng ngày không hợp lệ!\n\nVui lòng nhập theo định dạng: dd/mm/yyyy\n(Ví dụ: 15/01/2026)');
-      return;
-    }
-    
-    const day = parseInt(match[1]);
-    const month = parseInt(match[2]) - 1; // JavaScript month is 0-indexed
-    const year = parseInt(match[3]);
-    
-    const customDate = new Date(year, month, day);
-    
-    // KIỂM TRA NGÀY HỢP LỆ
-    if (isNaN(customDate.getTime()) || day < 1 || day > 31 || month < 0 || month > 11) {
-      ui.alert('❌ Ngày không hợp lệ!\n\nVui lòng kiểm tra lại ngày/tháng/năm.');
-      return;
-    }
-    
-    logger.info(`📅 Ngày được chọn: ${Utilities.formatDate(customDate, Session.getScriptTimeZone(), 'dd/MM/yyyy')}`);
-    
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheets = ss.getSheets();
-    
-    let totalFilled = 0;
-    let processedSheets = 0;
-    
-    sheets.forEach(sh => {
-      const name = sh.getName();
-      
-      // CHỈ XỬ LÝ CÁC SHEET THÁNG
-      if (!name.startsWith(Config.MONTH_PREFIX)) {
-        return;
-      }
-      
-      logger.info(`📋 Xử lý sheet: ${name}`);
-      
-      const lastRow = sh.getLastRow();
-      
-      if (lastRow < Config.DATA_START_ROW) {
-        logger.info(`   ⚠️ Sheet ${name} không có dữ liệu`);
-        return;
-      }
-      
-      let filledInSheet = 0;
-      
-      // DUYỆT QUA TỪNG DÒNG DỮ LIỆU
-      for (let row = Config.DATA_START_ROW; row <= lastRow; row++) {
-        const cellA = sh.getRange(row, 1); // Cột NGÀY GHI NHẬN
-        const cellB = sh.getRange(row, 2); // Cột MÃ TVV
-        const cellG = sh.getRange(row, 7); // Cột SĐT
-        
-        const dateValue = cellA.getValue();
-        const maTVV = cellB.getValue();
-        const sdt = cellG.getValue();
-        
-        // ĐIỀU KIỆN: Có MÃ TVV hoặc SĐT, nhưng chưa có ngày
-        if ((maTVV !== "" || sdt !== "") && dateValue === "") {
-          cellA.setValue(customDate);
-          cellA.setNumberFormat("dd/mm/yyyy");
-          cellA.setBackground("#fff4e6"); // Màu vàng nhạt để phân biệt với ngày tự động
-          
-          filledInSheet++;
-          totalFilled++;
-          
-          logger.debug(`   ✅ Điền ngày dòng ${row}: Mã TVV=${maTVV}, SĐT=${sdt}`);
-        }
-      }
-      
-      if (filledInSheet > 0) {
-        processedSheets++;
-        logger.info(`   📊 Đã điền ${filledInSheet} dòng trong sheet ${name}`);
-      } else {
-        logger.info(`   ✅ Tất cả dòng trong ${name} đã có ngày`);
-      }
-    });
-    
-    const message = `✅ **HOÀN TẤT ĐIỀN NGÀY TÙY CHỈNH**
-
-📅 **NGÀY ĐÃ ĐIỀN:** ${Utilities.formatDate(customDate, Session.getScriptTimeZone(), 'dd/MM/yyyy')}
-
-📊 **KẾT QUẢ:**
-• Tổng số sheet xử lý: ${processedSheets}
-• Tổng số dòng đã điền: ${totalFilled}
-
-${totalFilled > 0 ? '✨ Các dòng đã được điền ngày tùy chỉnh (nền vàng nhạt)!' : '✅ Tất cả dữ liệu đã có ngày!'}`;
-    
-    logger.info(message);
-    ui.alert(message);
+    logger.info('Đã tạo Form với bố cục mới');
     
   } catch (error) {
-    logger.error('❌ Lỗi khi điền ngày tùy chỉnh: ' + error.toString());
-    SpreadsheetApp.getUi().alert('❌ Lỗi khi điền ngày tùy chỉnh: ' + error.toString());
+    logger.error('Lỗi tạo Form bố cục mới: ' + error.toString());
+    SpreadsheetApp.getUi().alert('❌ Lỗi tạo Form: ' + error.toString());
   }
+}
+
+/* ================================================
+   HÀM TẠO FORM MỚI (ALIAS)
+================================================ */
+
+function createNewForm() {
+  createNewFormLayout();
 }

@@ -1,11 +1,12 @@
 /* ================================================
-   DATABASE SERVICE - CẬP NHẬT CHO CỘT MỚI
+   DATABASE SERVICE 
+   Xử lý mọi thao tác với sheet Database
 ================================================ */
 
 class DatabaseService {
   constructor() {
     this.config = Config;
-    this.logger = logger;
+    console.log('✅ DatabaseService đã được khởi tạo');
   }
   
   // Lấy sheet Database (tạo mới nếu chưa có)
@@ -15,32 +16,34 @@ class DatabaseService {
       let dbSheet = ss.getSheetByName(this.config.DB_SHEET_NAME);
       
       if (!dbSheet) {
-        this.logger.info('Tạo sheet Database mới');
+        console.log('📝 Tạo sheet Database mới');
         dbSheet = ss.insertSheet(this.config.DB_SHEET_NAME);
+        
+        // 🆕 TẠO HEADER CƠ BẢN NẾU SHEET MỚI
         this._initializeDatabaseHeaders(dbSheet);
       }
       
       return dbSheet;
     } catch (error) {
-      this.logger.error('Lỗi khi lấy Database sheet: ' + error.toString());
+      console.error('❌ Lỗi khi lấy Database sheet:', error);
       throw error;
     }
   }
   
-  // 🆕 KHỞI TẠO HEADERS CHO DATABASE MỚI VỚI CÁC CỘT MỚI
+  // 🆕 KHỞI TẠO HEADERS CHO DATABASE MỚI
   _initializeDatabaseHeaders(dbSheet) {
     try {
-      // 🆕 TẠO HEADER TỪ DB_COLUMNS + METADATA
-      const dbHeader = [...this.config.DB_COLUMNS, this.config.SHEET_GOC_COL, this.config.DONG_GOC_COL];
-      dbSheet.getRange(this.config.DB_HEADER_ROW, 1, 1, dbHeader.length)
-        .setValues([dbHeader]);
-      this.logger.info(`Đã tạo ${dbHeader.length} cột cho Database`);
+      const basicHeaders = [this.config.SDT_HEADER, 'Sheet_goc', 'Dong_goc'];
+      // 🎯 SỬA: Dùng DB_HEADER_ROW (dòng 1) cho Database
+      dbSheet.getRange(this.config.DB_HEADER_ROW, 1, 1, basicHeaders.length)
+        .setValues([basicHeaders]);
+      console.log('✅ Đã tạo headers cơ bản cho Database (dòng 1)');
     } catch (error) {
-      this.logger.warn('Không thể tạo headers cho Database: ' + error.toString());
+      console.warn('⚠️ Không thể tạo headers cho Database:', error);
     }
   }
   
-  // Xóa toàn bộ nội dung Database
+  // Xóa toàn bộ nội dung Database (trước khi gom dữ liệu mới)
   clearDatabase() {
     try {
       const dbSheet = this.getDatabaseSheet();
@@ -48,15 +51,17 @@ class DatabaseService {
       
       if (lastRow > 0) {
         dbSheet.clearContents();
-        this.logger.info('Đã xóa nội dung cũ trong Database');
+        console.log('🧹 Đã xóa nội dung cũ trong Database');
+        
+        // 🆕 KHÔI PHỤC HEADERS SAU KHI XÓA
         this._initializeDatabaseHeaders(dbSheet);
       } else {
-        this.logger.info('Database đã trống');
+        console.log('ℹ️ Database đã trống, không cần xóa');
       }
       
       return dbSheet;
     } catch (error) {
-      this.logger.error('Lỗi khi xóa Database: ' + error.toString());
+      console.error('❌ Lỗi khi xóa Database:', error);
       throw error;
     }
   }
@@ -67,76 +72,85 @@ class DatabaseService {
       const dbSheet = this.getDatabaseSheet();
       const lastRow = dbSheet.getLastRow();
       
+      // 🎯 SỬA: Dùng DB_DATA_START_ROW (dòng 2) cho Database
       if (lastRow < this.config.DB_DATA_START_ROW) {
-        this.logger.info('Database chưa có dữ liệu');
+        console.log('ℹ️ Database chưa có dữ liệu');
         return null;
       }
       
+      // 🆕 KIỂM TRA CÓ HEADER KHÔNG
       const sdtColIndex = this.getSdtColumnIndex(dbSheet);
       if (sdtColIndex === -1) {
-        this.logger.warn('Không tìm thấy cột SDT trong Database');
+        console.log('❌ Không tìm thấy cột SDT trong Database');
         return null;
       }
       
+      // 🎯 SỬA: Dùng DB_DATA_START_ROW (dòng 2) cho Database
       const sdtValues = dbSheet.getRange(
         this.config.DB_DATA_START_ROW, 
         sdtColIndex + 1, 
         lastRow - this.config.DB_DATA_START_ROW + 1, 
         1
-      ).getDisplayValues();
+      ).getValues();
       
+      // Tìm kiếm tuyến tính
       const phoneStr = String(phoneNumber).trim();
       for (let i = 0; i < sdtValues.length; i++) {
         if (String(sdtValues[i][0]).trim() === phoneStr) {
+          // 🎯 SỬA: Dùng DB_DATA_START_ROW (dòng 2) cho Database
           const foundRow = this.config.DB_DATA_START_ROW + i;
-          this.logger.info(`Tìm thấy SDT ${phoneStr} tại dòng ${foundRow}`);
+          console.log(`🔍 Tìm thấy SDT ${phoneStr} tại dòng ${foundRow}`);
           return foundRow;
         }
       }
       
-      this.logger.info(`Không tìm thấy SDT: ${phoneStr}`);
+      console.log(`❌ Không tìm thấy SDT: ${phoneStr}`);
       return null;
       
     } catch (error) {
-      this.logger.error('Lỗi khi tìm kiếm SDT: ' + error.toString());
+      console.error('❌ Lỗi khi tìm kiếm SDT:', error);
       return null;
     }
   }
   
-  // Lấy vị trí cột SĐT trong sheet
+  // Lấy vị trí cột SDT trong sheet
   getSdtColumnIndex(dbSheet) {
     try {
       const lastCol = dbSheet.getLastColumn();
       
+      // 🆕 KIỂM TRA NẾU SHEET TRỐNG
       if (lastCol === 0) {
-        this.logger.info('Database sheet trống');
+        console.log('ℹ️ Database sheet trống');
         return -1;
       }
       
+      // 🎯 SỬA: Dùng DB_HEADER_ROW (dòng 1) cho Database
       const header = dbSheet.getRange(this.config.DB_HEADER_ROW, 1, 1, lastCol).getValues()[0];
       const index = header.indexOf(this.config.SDT_HEADER);
       
       if (index === -1) {
-        this.logger.warn(`Không tìm thấy cột "${this.config.SDT_HEADER}" trong Database`);
+        console.warn(`⚠️ Không tìm thấy cột "${this.config.SDT_HEADER}" trong Database`);
+        console.log('Headers có sẵn:', header.filter(h => h));
         return -1;
       }
       
-      this.logger.info(`Tìm thấy cột SĐT tại vị trí: ${index}`);
+      console.log(`✅ Tìm thấy cột SDT tại vị trí: ${index}`);
       return index;
       
     } catch (error) {
-      this.logger.error('Lỗi khi tìm cột SĐT: ' + error.toString());
+      console.error('❌ Lỗi khi tìm cột SDT:', error);
       return -1;
     }
   }
   
-  // Kiểm tra trạng thái Database
+  // 🆕 KIỂM TRA TRẠNG THÁI DATABASE
   getDatabaseStatus() {
     try {
       const dbSheet = this.getDatabaseSheet();
       const lastRow = dbSheet.getLastRow();
       const lastCol = dbSheet.getLastColumn();
       
+      // 🎯 SỬA: Dùng DB_DATA_START_ROW (dòng 2) cho Database
       const hasData = lastRow >= this.config.DB_DATA_START_ROW;
       const sdtColIndex = this.getSdtColumnIndex(dbSheet);
       const hasSdtColumn = sdtColIndex !== -1;
@@ -147,7 +161,7 @@ class DatabaseService {
         totalColumns: lastCol,
         hasData: hasData,
         hasSdtColumn: hasSdtColumn,
-        expectedColumns: this.config.DB_COLUMNS.length + 2, // +2 metadata
+        // 🎯 SỬA: Dùng DB_DATA_START_ROW (dòng 2) cho Database
         dataRowCount: hasData ? lastRow - this.config.DB_DATA_START_ROW + 1 : 0
       };
     } catch (error) {
@@ -159,4 +173,5 @@ class DatabaseService {
   }
 }
 
+// Tạo instance toàn cục để sử dụng
 const databaseService = new DatabaseService();
